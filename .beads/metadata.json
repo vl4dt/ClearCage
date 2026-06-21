@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "ClearCage",
+  "project_id": "38b9fac8-ca4c-40e6-a178-0e86e185ed60"
+}
