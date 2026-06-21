@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}History — ClearCage{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold">Scan History</h1>
+        <a href="/" class="btn btn-sm">New Analysis</a>
+    </div>
+
+    <!-- Filters -->
+    <div class="flex flex-wrap gap-3 mb-4">
+        <input type="text" id="search-input" placeholder="Search filename or URL..."
+               class="input input-bordered input-sm w-64">
+        <select id="status-filter" class="select select-bordered select-sm">
+            <option value="">All Statuses</option>
+            <option value="queued">Queued</option>
+            <option value="running">Running</option>
+            <option value="complete">Complete</option>
+            <option value="failed">Failed</option>
+        </select>
+        <select id="type-filter" class="select select-bordered select-sm">
+            <option value="">All Types</option>
+            <option value="file">File</option>
+            <option value="url">URL</option>
+        </select>
+        <select id="category-filter" class="select select-bordered select-sm">
+            <option value="">All Categories</option>
+            <option value="clean">Clean</option>
+            <option value="suspicious">Suspicious</option>
+            <option value="malicious">Malicious</option>
+            <option value="critical">Critical</option>
+        </select>
+        <button id="apply-filters" class="btn btn-sm btn-primary">Apply</button>
+    </div>
+
+    <!-- History Table -->
+    <div id="history-table" class="bg-base-100 rounded-lg shadow overflow-hidden"></div>
+
+    <!-- Pagination -->
+    <div class="flex justify-between items-center mt-4">
+        <span id="page-info" class="text-sm text-base-content/60"></span>
+        <div class="join">
+            <button id="prev-page" class="btn btn-sm join-item">&lt;</button>
+            <button id="next-page" class="btn btn-sm join-item">&gt;</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentPage = 1;
+let totalPages = 1;
+let tabulator = null;
+
+function buildQueryParams() {
+    const params = new URLSearchParams({
+        page: currentPage,
+        per_page: 20,
+    });
+    const search = document.getElementById("search-input").value;
+    const status = document.getElementById("status-filter").value;
+    const type = document.getElementById("type-filter").value;
+    const category = document.getElementById("category-filter").value;
+
+    if (search) params.set("search", search);
+    if (status) params.set("status", status);
+    if (type) params.set("type", type);
+    if (category) params.set("category", category);
+    return params.toString();
+}
+
+function loadHistory() {
+    fetch(`/api/history?${buildQueryParams()}`)
+        .then(r => r.json())
+        .then(data => {
+            renderTable(data.items);
+            totalPages = data.pages;
+            document.getElementById("page-info").textContent =
+                `Page ${data.page} of ${totalPages} (${data.total} total)`;
+            document.getElementById("prev-page").disabled = data.page <= 1;
+            document.getElementById("next-page").disabled = data.page >= totalPages;
+        })
+        .catch(err => console.error("Failed to load history:", err));
+}
+
+function renderTable(items) {
+    const columns = [
+        {title: "ID", field: "id", width: 120, formatter: "link", formatterParams: {url:"/analysis/{value}", target:"_blank"}},
+        {title: "Type", field: "type", width: 80, hozAlign: "center", formatter: function(cell) {
+            const v = cell.getValue();
+            return v === "file" ? '<span class="badge badge-primary">File</span>' : '<span class="badge badge-secondary">URL</span>';
+        }},
+        {title: "Target", field: "target", minWidth: 200, tooltip: true},
+        {title: "Status", field: "status", width: 100, hozAlign: "center", formatter: function(cell) {
+            const colors = {queued:"badge-ghost", running:"badge-info", complete:"badge-success", failed:"badge-error"};
+            return `<span class="badge ${colors[cell.getValue()] || 'badge-ghost'}">${cell.getValue()}</span>`;
+        }},
+        {title: "Verdict", field: "verdict", width: 150, formatter: function(cell) {
+            const v = cell.getValue();
+            if (!v) return '<span class="text-base-content/40">—</span>';
+            const colors = {clean:"text-success", suspicious:"text-warning", malicious:"text-error", critical:"text-error"};
+            return `<span class="${colors[v.category] || ''}">${v.category} (${v.score})</span>`;
+        }},
+        {title: "Created", field: "created_at", width: 160, formatter: function(cell) {
+            return cell.getValue() ? new Date(cell.getValue()).toLocaleString() : '';
+        }},
+    ];
+
+    if (tabulator) tabulator.destroy();
+    tabulator = new Tabulator("#history-table", {
+        data: items || [],
+        columns: columns,
+        layout: "fitColumns",
+        placeholder: "No analyses found",
+        pagination: "local",
+        paginationSize: 20,
+    });
+}
+
+document.getElementById("apply-filters").addEventListener("click", () => { currentPage = 1; loadHistory(); });
+document.getElementById("prev-page").addEventListener("click", () => { if (currentPage > 1) { currentPage--; loadHistory(); }});
+document.getElementById("next-page").addEventListener("click", () => { if (currentPage < totalPages) { currentPage++; loadHistory(); }});
+
+loadHistory();
+</script>
+{% endblock %}

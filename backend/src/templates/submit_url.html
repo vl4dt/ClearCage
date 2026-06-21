@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Analyze URL — ClearCage{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="text-center mb-6">
+        <h1 class="text-3xl font-bold">Analyze URL</h1>
+        <p class="text-base-content/60">Check a suspicious link for phishing, malware hosting, or drive-by downloads</p>
+    </div>
+
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <form hx-post="/api/analyze/url" hx-headers='{"Content-Type": "application/json"}'
+                  hx-target="#result-area" hx-indicator="#url-spinner"
+                  id="url-form">
+                <div class="form-control w-full">
+                    <label class="label"><span class="label-text font-semibold">URL</span></label>
+                    <input type="url" name="url_input" id="url-input"
+                           class="input input-bordered input-lg w-full"
+                           placeholder="https://suspicious.example.com/malware.exe" required>
+                </div>
+
+                <div class="card-actions mt-6 justify-end">
+                    <a href="/" class="btn btn-ghost btn-sm">Cancel</a>
+                    <span id="url-spinner" class="htmx-indicator loading loading-spinner loading-sm"></span>
+                    <button type="submit" class="btn btn-secondary">Analyze URL</button>
+                </div>
+            </form>
+
+            <!-- Result Area -->
+            <div id="result-area" class="mt-4"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}

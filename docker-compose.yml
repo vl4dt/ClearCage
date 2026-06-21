@@ -1,0 +1,52 @@
+# ClearCage — Single-command deployment
+# Usage: docker compose up -d --build
+
+services:
+  api:
+    build: ./backend
+    container_name: clearcage-api
+    ports:
+      - "8000:8000"
+    privileged: true  # DinD requirement (see ADR-0001)
+    volumes:
+      - yara-rules:/app/yara-rules:ro
+      - samples:/app/storage
+      - ./config:/app/config:ro
+    environment:
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - VIRUSTOTAL_API_KEY=${VIRUSTOTAL_API_KEY:-}
+      - URLSCAN_API_KEY=${URLSCAN_API_KEY:-}
+      - ABUSEIPDB_API_KEY=${ABUSEIPDB_API_KEY:-}
+      - SAMPLE_TTL_DAYS=${SAMPLE_TTL_DAYS:-7}
+      - MAX_CONCURRENT_ANALYSES=${MAX_CONCURRENT_ANALYSES:-3}
+      - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-50}
+    depends_on:
+      cape:
+        condition: service_healthy
+    restart: unless-stopped
+
+  cape:
+    image: systemcrafters/capeweb:latest
+    container_name: clearcage-cape
+    ports:
+      - "8081:8000"  # CAPE web UI (optional access)
+    volumes:
+      - cape-data:/opt/cape/data
+      - samples:/app/samples:ro  # Shared sample access
+    environment:
+      - DATABASE_URI=sqlite:////opt/cape/data/monitoring.db
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v2/about"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+
+volumes:
+  yara-rules:
+    driver: local
+  samples:
+    driver: local
+  cape-data:
+    driver: local

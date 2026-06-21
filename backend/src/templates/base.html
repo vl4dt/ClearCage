@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}ClearCage{% endblock %}</title>
+
+    <!-- Tailwind CSS + daisyUI (CDN) -->
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.0/dist/full.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- HTMX (SSE support) -->
+    <script src="https://unpkg.com/htmx.org@2.0.0"></script>
+    <script src="https://unpkg.com/htmx-ext-sse@2.0.0"></script>
+
+    <!-- ApexCharts -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.50.0"></script>
+
+    <!-- Tabulator (data tables) -->
+    <link href="https://unpkg.com/tabulator-tables@6.2.0/dist/css/tabulator_midnight.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/tabulator-tables@6.2.0/dist/js/tabulator.min.js"></script>
+
+    {% block head %}{% endblock %}
+</head>
+<body class="min-h-screen bg-base-200">
+
+    <!-- Navbar -->
+    <div class="navbar bg-base-100 shadow-lg">
+        <div class="flex-1">
+            <a href="/" class="btn btn-ghost text-xl">
+                <span class="text-warning">⬡</span> ClearCage
+            </a>
+        </div>
+        <div class="flex-none gap-2">
+            <a href="/submit/file" class="btn btn-sm">Upload File</a>
+            <a href="/submit/url" class="btn btn-sm">Analyze URL</a>
+            <a href="/history" class="btn btn-sm btn-ghost">History</a>
+            <a href="/dashboard" class="btn btn-sm btn-ghost">Dashboard</a>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="container mx-auto p-4">
+        {% block content %}{% endblock %}
+    </main>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

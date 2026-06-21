@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard — ClearCage{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold">Dashboard</h1>
+        <a href="/" class="btn btn-sm">New Analysis</a>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6" id="stats-cards">
+        <div class="stat bg-base-100 rounded-box shadow">
+            <div class="stat-title">Total Analyses</div>
+            <div class="stat-value text-primary" id="stat-total">—</div>
+        </div>
+        <div class="stat bg-base-100 rounded-box shadow">
+            <div class="stat-title">Complete</div>
+            <div class="stat-value text-success" id="stat-complete">—</div>
+        </div>
+        <div class="stat bg-base-100 rounded-box shadow">
+            <div class="stat-title">Running</div>
+            <div class="stat-value text-info" id="stat-running">—</div>
+        </div>
+        <div class="stat bg-base-100 rounded-box shadow">
+            <div class="stat-title">Avg Score</div>
+            <div class="stat-value text-warning" id="stat-avg">—</div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <!-- Verdict Distribution -->
+        <div class="card bg-base-100 shadow">
+            <div class="card-body">
+                <h3 class="card-title text-sm">Verdict Distribution</h3>
+                <div id="chart-verdicts"></div>
+            </div>
+        </div>
+
+        <!-- Status Breakdown -->
+        <div class="card bg-base-100 shadow">
+            <div class="card-body">
+                <h3 class="card-title text-sm">Status Breakdown</h3>
+                <div id="chart-statuses"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Analyses -->
+    <div class="card bg-base-100 shadow">
+        <div class="card-body">
+            <h3 class="card-title text-sm">Recent Analyses</h3>
+            <div id="recent-table"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Load dashboard stats
+fetch("/api/history/stats")
+    .then(r => r.json())
+    .then(stats => {
+        document.getElementById("stat-total").textContent = stats.total_analyses;
+        document.getElementById("stat-complete").textContent = stats.by_status.complete || 0;
+        document.getElementById("stat-running").textContent = stats.by_status.running || 0;
+        document.getElementById("stat-avg").textContent = stats.average_score;
+
+        // Verdict distribution chart
+        const verdictData = Object.entries(stats.by_category || {}).map(([k, v]) => ({
+            x: k.charAt(0).toUpperCase() + k.slice(1),
+            y: v
+        }));
+
+        new ApexCharts(document.getElementById("chart-verdicts"), {
+            chart: {type: "donut", height: 250},
+            labels: verdictData.map(d => d.x),
+            series: verdictData.map(d => d.y),
+            colors: ["#4ade80", "#facc15", "#f87171", "#ef4444"],
+            legend: {position: "bottom"},
+        }).render();
+
+        // Status breakdown chart
+        const statusData = Object.entries(stats.by_status || {}).map(([k, v]) => ({
+            x: k.charAt(0).toUpperCase() + k.slice(1),
+            y: v
+        }));
+
+        new ApexCharts(document.getElementById("chart-statuses"), {
+            chart: {type: "bar", height: 250},
+            series: [{name: "Count", data: statusData.map(d => d.y)}],
+            xaxis: {categories: statusData.map(d => d.x)},
+            plotOptions: {bar: {horizontal: false, borderRadius: 4}},
+            colors: ["#6366f1"],
+        }).render();
+    })
+    .catch(err => console.error("Failed to load stats:", err));
+
+// Load recent analyses
+fetch("/api/history?page=1&per_page=10")
+    .then(r => r.json())
+    .then(data => {
+        const columns = [
+            {title: "ID", field: "id", width: 120, formatter: "link",
+             formatterParams: {url:"/analysis/{value}", target:"_blank"}},
+            {title: "Type", field: "type", width: 80, hozAlign: "center"},
+            {title: "Target", field: "target", minWidth: 200, tooltip: true},
+            {title: "Status", field: "status", width: 100, hozAlign: "center"},
+            {title: "Verdict", field: "verdict", width: 150, formatter: function(cell) {
+                const v = cell.getValue();
+                if (!v) return '—';
+                return `${v.category} (${v.score})`;
+            }},
+        ];
+
+        new Tabulator("#recent-table", {
+            data: data.items || [],
+            columns: columns,
+            layout: "fitColumns",
+            placeholder: "No analyses yet",
+        });
+    })
+    .catch(err => console.error("Failed to load recent:", err));
+</script>
+{% endblock %}

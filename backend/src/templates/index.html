@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}ClearCage — Threat Analysis{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Hero -->
+    <div class="text-center mb-8">
+        <h1 class="text-4xl font-bold mb-2">
+            <span class="text-warning">⬡</span> ClearCage
+        </h1>
+        <p class="text-base-content/60 text-lg">Containerized threat analysis — static + dynamic sandbox</p>
+    </div>
+
+    <!-- Quick Submit Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- File Upload Card -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Analyze File
+                </h2>
+                <p class="text-sm text-base-content/60">Upload a suspicious file (PE, Office doc, PDF, script)</p>
+
+                <form hx-post="/api/analyze/file" hx-encoding="multipart/form-data"
+                      hx-target="#file-result" hx-indicator="#file-spinner">
+                    <div class="form-control w-full mt-4">
+                        <label class="label"><span class="label-text">File</span></label>
+                        <input type="file" name="file" class="file-input file-input-bordered w-full" required>
+                    </div>
+                    <div class="card-actions mt-4 justify-end">
+                        <span id="file-spinner" class="htmx-indicator loading loading-spinner loading-sm"></span>
+                        <button type="submit" class="btn btn-primary btn-sm">Analyze</button>
+                    </div>
+                </form>
+                <div id="file-result" class="mt-2 text-sm"></div>
+            </div>
+        </div>
+
+        <!-- URL Analysis Card -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.396a9 9 0 005.942.859m-.5-3.07a5 5 0 00-7.072-3.154" />
+                    </svg>
+                    Analyze URL
+                </h2>
+                <p class="text-sm text-base-content/60">Check a suspicious link (phishing, malware hosting)</p>
+
+                <form hx-post="/api/analyze/url" hx-headers='{"Content-Type": "application/json"}'
+                      hx-target="#url-result" hx-indicator="#url-spinner">
+                    <div class="form-control w-full mt-4">
+                        <label class="label"><span class="label-text">URL</span></label>
+                        <input type="url" name="url_input" id="url-input"
+                               class="input input-bordered w-full"
+                               placeholder="https://suspicious.example.com" required>
+                    </div>
+                    <div class="card-actions mt-4 justify-end">
+                        <span id="url-spinner" class="htmx-indicator loading loading-spinner loading-sm"></span>
+                        <button type="submit" class="btn btn-secondary btn-sm">Analyze</button>
+                    </div>
+                </form>
+                <div id="url-result" class="mt-2 text-sm"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Supported File Types -->
+    <div class="mt-8 card bg-base-100 shadow">
+        <div class="card-body">
+            <h3 class="card-title text-sm">Supported File Types</h3>
+            <div class="flex flex-wrap gap-2">
+                <span class="badge badge-primary">PE / EXE / DLL</span>
+                <span class="badge badge-primary">Office (DOC/XLS/PPT)</span>
+                <span class="badge badge-primary">PDF</span>
+                <span class="badge badge-primary">Scripts (PS1/BAT/SH/JS)</span>
+                <span class="badge badge-ghost">ELF (Tier 2)</span>
+                <span class="badge badge-ghost">Archives (Tier 2)</span>
+                <span class="badge badge-ghost">APK/IPA (Tier 3)</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

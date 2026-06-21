@@ -1,0 +1,35 @@
+# ClearCage Backend Dependencies
+# Python 3.12+ required
+
+# Web framework + server
+fastapi==0.115.*
+uvicorn[standard]==0.34.*
+jinja2==3.1.*
+python-multipart==0.0.*
+
+# Docker orchestration (DinD)
+docker==7.1.*
+
+# Analysis libraries
+pefile==2024.8.*
+yara-python==4.5.*
+magika==0.6.*
+oletools==0.6.*
+ssdeep==3.5.*
+
+# Async HTTP clients (threat intel APIs)
+aiohttp==3.11.*
+
+# Database + ORM
+sqlalchemy[asyncio]==2.0.*
+aiosqlite==0.20.*
+
+# Encryption (sample storage at rest)
+cryptography==44.*
+
+# Config + scheduling
+pyyaml==6.0.*
+apscheduler==3.10.*
+
+# Utilities
+httpx==0.28.*  # for CAPEv2 REST client

@@ -1,5 +1,29 @@
+# Environment
+.env
 
-# Beads / Dolt files (added by bd init)
-.dolt/
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker volumes (local dev)
+storage/
 *.db
-.beads-credential-key
+
+# OS
+.DS_Store
+Thumbs.db

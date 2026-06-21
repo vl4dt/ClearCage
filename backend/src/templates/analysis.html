@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block title %}Analysis {{ analysis_id }} — ClearCage{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-3xl font-bold">Analysis Results</h1>
+            <p class="text-base-content/60">ID: {{ analysis_id }}</p>
+        </div>
+        <a href="/" class="btn btn-ghost btn-sm">← Back</a>
+    </div>
+
+    <!-- Verdict Banner (updated via SSE) -->
+    <div id="verdict-banner" class="alert alert-info mb-4">
+        <span class="loading loading-spinner"></span>
+        <span id="verdict-text">Waiting for analysis to complete...</span>
+    </div>
+
+    <!-- Pipeline Progress -->
+    <div class="mb-6">
+        <h2 class="text-lg font-semibold mb-2">Pipeline Progress</h2>
+        <progress id="pipeline-progress" class="progress progress-info w-full" value="0" max="4"></progress>
+        <div class="flex justify-between mt-2 text-sm text-base-content/60">
+            <span id="phase-pre_analysis">⏳ Pre-analysis</span>
+            <span id="phase-static">⏳ Static</span>
+            <span id="phase-intelligence">⏳ Intel</span>
+            <span id="phase-sandbox">⏳ Sandbox</span>
+        </div>
+    </div>
+
+    <!-- Phase Results (populated via SSE) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <!-- Pre-analysis Findings -->
+        <div class="card bg-base-100 shadow">
+            <div class="card-body p-4">
+                <h3 class="card-title text-sm">Pre-analysis</h3>
+                <div id="findings-pre_analysis" class="text-sm text-base-content/60">
+                    Waiting...
+                </div>
+            </div>
+        </div>
+
+        <!-- Static Analysis Findings -->
+        <div class="card bg-base-100 shadow">
+            <div class="card-body p-4">
+                <h3 class="card-title text-sm">Static Analysis</h3>
+                <div id="findings-static" class="text-sm text-base-content/60">
+                    Waiting...
+                </div>
+            </div>
+        </div>
+
+        <!-- Threat Intelligence -->
+        <div class="card bg-base-100 shadow">
+            <div class="card-body p-4">
+                <h3 class="card-title text-sm">Threat Intelligence</h3>
+                <div id="findings-intelligence" class="text-sm text-base-content/60">
+                    Waiting...
+                </div>
+            </div>
+        </div>
+
+        <!-- Sandbox Results -->
+        <div class="card bg-base-100 shadow">
+            <div class="card-body p-4">
+                <h3 class="card-title text-sm">Dynamic Sandbox</h3>
+                <div id="findings-sandbox" class="text-sm text-base-content/60">
+                    Waiting...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scoring Indicators -->
+    <div class="card bg-base-100 shadow mb-6">
+        <div class="card-body">
+            <h3 class="card-title">Scoring Breakdown</h3>
+            <div id="scoring-breakdown" class="overflow-x-auto">
+                <table class="table table-sm w-full">
+                    <thead>
+                        <tr>
+                            <th>Indicator</th>
+                            <th>Count</th>
+                            <th>Weight</th>
+                            <th>Points</th>
+                        </tr>
+                    </thead>
+                    <tbody id="scoring-tbody">
+                        <tr><td colspan="4" class="text-base-content/60">Waiting...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Buttons -->
+    <div class="flex gap-2">
+        <a id="export-json" href="#" class="btn btn-sm btn-outline">Export JSON</a>
+        <a id="export-csv" href="#" class="btn btn-sm btn-outline">Export CSV</a>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const ANALYSIS_ID = "{{ analysis_id }}";
+
+// SSE connection for real-time updates
+const evtSource = new EventSource(`/api/analysis/${ANALYSIS_ID}/stream`);
+
+evtSource.onmessage = function(e) {
+    const msg = JSON.parse(e.data);
+    const event = msg.event;
+    const data = msg.data;
+
+    if (event === "phase_start") {
+        document.getElementById(`phase-${data.phase}`).textContent = `🔍 ${data.phase}`;
+    } else if (event === "phase_complete") {
+        document.getElementById(`phase-${data.phase}`).textContent = `✅ ${data.phase}`;
+        document.getElementById("pipeline-progress").value =
+            parseInt(document.getElementById("pipeline-progress").value) + 1;
+        updateFindingsPanel(data.phase, data.findings_count);
+    } else if (event === "phase_failed") {
+        document.getElementById(`phase-${data.phase}`).textContent = `❌ ${data.phase}`;
+    } else if (event === "complete") {
+        renderVerdict(data.verdict);
+        renderScoringBreakdown(data.verdict.indicators || []);
+        document.getElementById("export-json").href = `/api/export/${ANALYSIS_ID}/json`;
+        document.getElementById("export-csv").href = `/api/export/${ANALYSIS_ID}/csv`;
+        evtSource.close();
+    }
+};
+
+// Fallback: fetch current state on load (in case analysis already completed)
+fetch(`/api/analysis/${ANALYSIS_ID}`)
+    .then(r => r.json())
+    .then(data => {
+        if (data.status === "complete" && data.verdict) {
+            renderVerdict(data.verdict);
+            evtSource.close();
+            document.getElementById("export-json").href = `/api/export/${ANALYSIS_ID}/json`;
+            document.getElementById("export-csv").href = `/api/export/${ANALYSIS_ID}/csv`;
+        }
+    })
+    .catch(() => {});
+
+function renderVerdict(verdict) {
+    const banner = document.getElementById("verdict-banner");
+    const text = document.getElementById("verdict-text");
+
+    const colorMap = {
+        "clean": "alert-success",
+        "suspicious": "alert-warning",
+        "malicious": "alert-error",
+        "critical": "alert-danger"
+    };
+
+    banner.className = `alert ${colorMap[verdict.category] || "alert-info"} mb-4`;
+    text.innerHTML = `
+        <strong>${verdict.category.toUpperCase()}</strong> (score: ${verdict.score})
+        — ${verdict.threat_type}<br>
+        <span class="text-sm">${verdict.summary}</span>
+    `;
+}
+
+function updateFindingsPanel(phase, count) {
+    const el = document.getElementById(`findings-${phase}`);
+    if (el) {
+        el.innerHTML = `<span class="badge badge-success">Complete</span> ${count} findings`;
+    }
+}
+
+function renderScoringBreakdown(indicators) {
+    const tbody = document.getElementById("scoring-tbody");
+    if (!indicators || indicators.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-base-content/60">No indicators</td></tr>';
+        return;
+    }
+    tbody.innerHTML = indicators.map(i => `
+        <tr>
+            <td>${i.name}</td>
+            <td>${i.count}</td>
+            <td>${i.weight}</td>
+            <td>${i.points}</td>
+        </tr>
+    `).join("");
+}
+</script>
+{% endblock %}

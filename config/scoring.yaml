@@ -1,0 +1,21 @@
+# ClearCage — Threat Scoring Configuration
+# Tunable weights + thresholds. Edit per-deployment, no code changes needed.
+
+scoring:
+  weights:
+    vt_detection_ratio: 4.0       # VirusTotal positives / total engines
+    yara_family_match: 2.0        # Per YARA rule match
+    suspicious_pe_import: 0.5     # Per suspicious API import (CreateRemoteThread, etc.)
+    high_entropy_section: 1.0     # Per section with entropy > 7.0 (packed/encrypted)
+    embedded_bad_url: 1.5         # Per URL to known-bad domain
+    extension_mismatch: 0.5       # File type ≠ extension (.txt that's actually PE)
+    macro_detected: 2.0           # Office macro code found
+    pdf_embedded_script: 1.5      # PDF contains JavaScript
+    urlscan_verdict_malicious: 3.0 # URLScan flags as malicious
+    capev2_malicious_behavior: 3.0 # Per CAPE behavioral indicator
+
+  thresholds:
+    clean: 2.0        # score < 2.0 → Clean
+    suspicious: 5.0   # score < 5.0 → Suspicious
+    malicious: 8.0    # score < 8.0 → Malicious
+    # score >= 8.0 → Critical
