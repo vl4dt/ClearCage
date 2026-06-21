@@ -24,6 +24,9 @@ venv/
 storage/
 *.db
 
+# Bools runtime data (Dolt DB excluded by .beads/.gitignore)
+.beads/embeddeddolt/
+
 # OS
 .DS_Store
 Thumbs.db
